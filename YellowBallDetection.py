@@ -26,8 +26,8 @@ def detect_yellow_ball():
 
         # *3 Define the range of yellow color in HSV [Hue, Saturation, Value]
         # SET THESE VALUES VIA THE METHOD EXPLAINED IN THE TUTORIAL
-        ball_color_lower = np.array([20, 100, 100]) # [lower Hue, lower Saturation, lower Value]
-        ball_color_upper = np.array([30, 255, 255]) # [upper Hue, upper Saturation, upper Value]
+        ball_color_lower = np.array([10, 100, 100]) # [lower Hue, lower Saturation, lower Value]
+        ball_color_upper = np.array([50, 255, 255]) # [upper Hue, upper Saturation, upper Value]
 
         # Threshold the HSV image to get the colors defined above
         # Pixels in the range are set to white (255) and those that aren't are set to black (0), creating a binary mask 
