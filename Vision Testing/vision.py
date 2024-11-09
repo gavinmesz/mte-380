@@ -43,6 +43,13 @@ def send_signed_int(value):
     lowByte = value & 0xFF
     
     bus.write_i2c_block_data(addr, highByte, [lowByte])
+
+def send_motor_data(M1_Byte, M2_Byte, M3_Byte):
+    highByte = int(M1_Byte) & 0xFF
+    mid_byte = int(M2_Byte) & 0xFF
+    lowByte = int(M3_Byte) & 0xFF
+    
+    bus.write_i2c_block_data(addr, highByte, [mid_byte, lowByte])
     
     
 def distance(coords0, coords1):
@@ -199,11 +206,14 @@ while True:
         cv2.putText(frame,str(motor2), m2Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor2), 2, cv2.LINE_AA)
         cv2.putText(frame,str(motor3), m3Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor3), 2, cv2.LINE_AA)
         
-        print("M1", motor1)
-        send_signed_int(int(motor1))
+        print("M1:", motor1)
+        #send_signed_int(int(motor1))
 
-        print("M2", motor2)
-        print("M3", motor3)
+        print("M2:", motor2)
+        print("M3:", motor3)
+        
+        send_motor_data(motor1,motor2,motor3)
+        
 
 
         # Display the frame with overlaid contours
