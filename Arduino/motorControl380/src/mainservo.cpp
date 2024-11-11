@@ -1,24 +1,24 @@
-#include <AccelStepper.h>
 #include <Arduino.h>
+#include <Servo.h>
 
-const int enPin = 2; //enable Pin for all steppers. Daisy chained.
-const int step1Pin = 3;
-const int dir1Pin = 4;
-const int step2Pin = 5;
-const int dir2Pin = 6;
-const int step3Pin = 7;
-const int dir3Pin = 8; 
-const int stepperTarget = -500;
+//PWM Pins
+servo M1;
+servo M2;
+servo M3;
+const int M1_PIN = 2;
+const int M2_PIN = 3;
+const int M3_PIN = 4;
+
+//Motor targets
+const int T1 = 0;
+const int T2 = 0;
+const int T3 = 0;
 
 // PID constants (students can edit these to adjust accuracy)
 float kp = 1; //*1
 float kd = 0.025; //*2
 float ki = 0.5; //*3
 int output = 0; //output from PID algorithm
-
-AccelStepper motor1(AccelStepper::DRIVER, step1Pin, dir1Pin); //create instance of stepper
-//AccelStepper motor2(AccelStepper::DRIVER, step2Pin, dir2Pin); //create instance of stepper
-//AccelStepper motor3(AccelStepper::DRIVER, step3Pin, dir3Pin); //create instance of stepper
 
 long prevT = 0; //previous time
 float errorPrev = 0; //previous error
@@ -32,35 +32,13 @@ float integral = 0; //integral term
 void setup() {
   //Configuring motor behaviour
   Serial.begin(9600);
-  motor1.disableOutputs();
-  //motor2.disableOutputs();
-  //motor3.disableOutputs();
-  motor1.setMaxSpeed(10000);
-  //motor2.setMaxSpeed(10000);
-  //motor3.setMaxSpeed(10000);
-  motor1.setCurrentPosition(0); //zero current stepper position
-  //motor2.setCurrentPosition(0);
-  //motor3.setCurrentPosition(0);
-  motor1.enableOutputs(); //enable outputs for motor
-  //motor2.enableOutputs();
-  //motor3.enableOutputs();
-  //TODO: Acceleration
-  motor1.setAcceleration(10000);
-  //TODO: 
+  M1.attach(M1_PIN,0,20000); // 0 -> 20000 us pulse width SUBJECT TO CHANGE
+  M2.attach(M2_PIN,0,20000);
+  M3.attach(M3_PIN,0,20000);
 }
 
 void loop() {
-  motor1.runToNewPosition(stepperTarget);
-  //motor2.moveTo(stepperTarget);
-  //motor3.moveTo(stepperTarget);
-  Serial.println("moving to 100");
-  Serial.println(motor1.currentPosition());
-
-  motor1.runToNewPosition(0);
-  //motor2.moveTo(0);
-  //motor3.moveTo(0);
-  Serial.println("moving to 0");
-  Serial.println(motor1.currentPosition());
+  
 }
 
 // void PID() {
