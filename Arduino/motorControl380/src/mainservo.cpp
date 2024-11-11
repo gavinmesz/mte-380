@@ -2,9 +2,9 @@
 #include <Servo.h>
 
 //PWM Pins
-servo M1;
-servo M2;
-servo M3;
+Servo M1;
+Servo M2;
+Servo M3;
 const int M1_PIN = 2;
 const int M2_PIN = 3;
 const int M3_PIN = 4;
@@ -32,13 +32,23 @@ float integral = 0; //integral term
 void setup() {
   //Configuring motor behaviour
   Serial.begin(9600);
-  M1.attach(M1_PIN,0,20000); // 0 -> 20000 us pulse width SUBJECT TO CHANGE
-  M2.attach(M2_PIN,0,20000);
+  M1.attach(M2_PIN); // 0 -> 20000 us pulse width SUBJECT TO CHANGE
+  M2.attach(M1_PIN,0,20000);
   M3.attach(M3_PIN,0,20000);
 }
 
+int pos = 0;
+
 void loop() {
-  
+  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    M1.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+    M1.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
 }
 
 // void PID() {
