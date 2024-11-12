@@ -39,15 +39,42 @@ void setup() {
 
 int pos = 0;
 
+const int MAX_POS = 1950;
+const int MIN_POS = 1695;
+
+const int MIN_NEG = 1050;
+const int MAX_NEG = 1305;
+
 void loop() {
-  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+  for (pos = MIN_NEG; pos <= MAX_NEG; pos += 1) { // goes from 0 degrees to 180 degrees
     // in steps of 1 degree
-    M1.write(pos);              // tell servo to go to position in variable 'pos'
+    M1.writeMicroseconds(pos);
+    M2.writeMicroseconds(pos);
+    M3.writeMicroseconds(pos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
+    Serial.println(pos);
   }
-  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-    M1.write(pos);              // tell servo to go to position in variable 'pos'
+  for (pos = MIN_POS; pos <= MAX_POS; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    M1.writeMicroseconds(pos);
+    M2.writeMicroseconds(pos);
+    M3.writeMicroseconds(pos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
+    Serial.println(pos);
+  }
+  for (pos = MAX_POS; pos >= MIN_POS; pos -= 1) { // goes from 180 degrees to 0 degrees
+    M1.writeMicroseconds(pos);
+    M2.writeMicroseconds(pos);
+    M3.writeMicroseconds(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+    Serial.println(pos);
+  }
+  for (pos = MAX_NEG; pos >= MIN_NEG; pos -= 1) { // goes from 180 degrees to 0 degrees
+    M1.writeMicroseconds(pos);
+    M2.writeMicroseconds(pos);
+    M3.writeMicroseconds(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+    Serial.println(pos);
   }
 }
 
