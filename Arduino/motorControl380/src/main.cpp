@@ -1,5 +1,6 @@
 #include <AccelStepper.h>
 #include <Arduino.h>
+#include <Wire.h>
 
 ////////////////
 //Pin Constants
@@ -13,6 +14,8 @@ const int dir2Pin = 6;
 const int step3Pin = 7;
 const int dir3Pin = 8;
 const int startButtonPin = 9;
+const int SDA_Pin = 20;
+const int SCL_Pin = 21;
 
 ///////////////////
 //Motor Constants
@@ -21,7 +24,7 @@ const int startButtonPin = 9;
 const int stepsPerRev = 3200;
 const int homingSteps = 200;
 
-AccelStepper motor1(AccelStepper::DRIVER, step1Pin, dir1Pin); //create instance of stepper
+AccelStepper M1(AccelStepper::DRIVER, step1Pin, dir1Pin); //create instance of stepper
 //AccelStepper motor2(AccelStepper::DRIVER, step2Pin, dir2Pin); //create instance of stepper
 //AccelStepper motor3(AccelStepper::DRIVER, step3Pin, dir3Pin); //create instance of stepper
 
@@ -38,22 +41,76 @@ float errorPrev = 0; //previous error
 const float MAX_INTEGRAL = 100.0; //maximum integral limit
 const float MIN_INTEGRAL = -100.0; //minimum integral limit
 float integral = 0; //integral term
+const int T1 = 0; //M1 target
+const int T2 = 0; //M2 target
+const int T3 = 0; //M3 target
+
+////////////
+//Functions
+////////////
+
+int8_t convertToSignedByte(uint8_t unsignedByte) {
+  int8_t signedByte;
+  
+  if (unsignedByte > 127) {
+    signedByte = unsignedByte - 256;
+  } else {
+    signedByte = unsignedByte;
+  }
+  
+  return signedByte;
+}
+
+float getSpeed(int val){
+  // float output;
+  // if(val==0){
+  //   return STOP;
+  // } else if(val>0){
+  //   output =  MIN_POS+(val/100.0)*(MAX_POS-MIN_POS);
+  // } else if(val<0){
+  //   output = MIN_NEG+(val/100.0)*(MIN_NEG-MAX_NEG);
+  // } else{
+  //   return -1;
+  // }
+  return val;
+}
+
+void receiveEvent() {
+  int M1_byte = convertToSignedByte(Wire.read());
+  int M2_byte = convertToSignedByte(Wire.read());
+  int M3_byte = convertToSignedByte(Wire.read());
+}
+
 
 void setup() {
-  ///////////////
-  //Configuration
-  ///////////////
-
   Serial.begin(9600);
-  motor1.disableOutputs();
-  //motor2.disableOutputs();
-  //motor3.disableOutputs();
-  motor1.setMaxSpeed(5000);
-  //motor2.setMaxSpeed(10000);
-  //motor3.setMaxSpeed(10000);
-  motor1.setCurrentPosition(0); //zero current stepper position
-  //motor2.setCurrentPosition(0);
-  //motor3.setCurrentPosition(0);
+
+  ////////////////////
+  //I2C Configuration
+  ////////////////////
+
+  Wire.begin(0x8);
+  
+  // Call receiveEvent function when data received                
+  Wire.onReceive(receiveEvent);
+
+  // Turn off 20k-50k ohm built-in pull up resistors at pins specified
+  digitalWrite(SDA_Pin, LOW);
+  digitalWrite(SCL_Pin, LOW); 
+
+  //////////////////////
+  //Motor Configuration
+  //////////////////////
+
+  M1.disableOutputs();
+  //M2.disableOutputs();
+  //M3.disableOutputs();
+  M1.setMaxSpeed(5000);
+  //M2.setMaxSpeed(10000);
+  //M3.setMaxSpeed(10000);
+  M1.setCurrentPosition(0); //zero current stepper position
+  //M2.setCurrentPosition(0);
+  //M3.setCurrentPosition(0);
 
   ///////////////
   //STARTUP
@@ -62,19 +119,19 @@ void setup() {
   //All Motors off, wait for home
   while (digitalRead(startButtonPin) == LOW){}
 
-  motor1.enableOutputs(); //enable outputs for motor
-  //motor2.enableOutputs();
-  //motor3.enableOutputs();
-  motor1.setAcceleration(1000000);
+  M1.enableOutputs(); //enable outputs for motor
+  //M2.enableOutputs();
+  //M3.enableOutputs();
+  M1.setAcceleration(1000000);
 
   //All motors move out of the way
-  motor1.runToNewPosition(homingSteps);
-  // motor2.runToNewPosition(homingSteps);
-  // motor3.runToNewPosition(homingSteps);
+  M1.runToNewPosition(homingSteps);
+  // M2.runToNewPosition(homingSteps);
+  // M3.runToNewPosition(homingSteps);
   delay(50);
-  motor1.setCurrentPosition(0);
-  // motor2.setCurrentPosition(0);
-  // motor3.setCurrentPosition(0);
+  M1.setCurrentPosition(0);
+  // 2.setCurrentPosition(0);
+  // M3.setCurrentPosition(0);
   delay(5000);
 
   //Wait until program start
