@@ -54,10 +54,6 @@ void setup() {
   motor1.setCurrentPosition(0); //zero current stepper position
   //motor2.setCurrentPosition(0);
   //motor3.setCurrentPosition(0);
-  motor1.enableOutputs(); //enable outputs for motor
-  //motor2.enableOutputs();
-  //motor3.enableOutputs();
-  motor1.setAcceleration(1000000);
 
   ///////////////
   //STARTUP
@@ -65,6 +61,11 @@ void setup() {
   
   //All Motors off, wait for home
   while (digitalRead(startButtonPin) == LOW){}
+
+  motor1.enableOutputs(); //enable outputs for motor
+  //motor2.enableOutputs();
+  //motor3.enableOutputs();
+  motor1.setAcceleration(1000000);
 
   //All motors move out of the way
   motor1.runToNewPosition(homingSteps);
