@@ -183,24 +183,25 @@ while True:
 
 
     
-            if(yVector > 0):
-                motor1 = -yVector
-            else:
-                motor1 = -yVector
+            
             
             closest = (findClosest(m1Loc,m2Loc, m3Loc, (int(x),int(y))))
             
             
             if "M1" == closest:
-                motor2 = -xVector
-                motor3 = xVector
+                motor1 = -yVector
+                motor2 = -xVector - motor1
+                motor3 = xVector - motor1
             else:
                 if("M3" == closest):
                     motor3 = xVector
-                    motor2 = -motor1
+                    motor1 = -yVector - motor3 
+                    motor2 = yVector - motor3
+
                 else:
                     motor2 = -xVector
-                    motor3 = -motor1
+                    motor1 = -yVector - motor2
+                    motor3 = -motor1 - motor2
         
         cv2.putText(frame,str(motor1), m1Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor1), 2, cv2.LINE_AA)
         cv2.putText(frame,str(motor2), m2Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor2), 2, cv2.LINE_AA)
