@@ -70,6 +70,10 @@ void receiveEvent() {
   int M1_byte = convertToSignedByte(Wire.read());
   int M2_byte = convertToSignedByte(Wire.read());
   int M3_byte = convertToSignedByte(Wire.read());
+
+  T1 = getPosition(M1_byte);
+  T2 = getPosition(M2_byte);
+  T3 = getPosition(M3_byte);
 }
 
 
@@ -148,9 +152,9 @@ void setup() {
 
 //Program
 void loop() {
-  M1.moveTo(getPosition(analogRead(A0)));
-  M2.moveTo(getPosition(analogRead(A0)));
-  M3.moveTo(getPosition(analogRead(A0)));
+  M1.moveTo(T1);
+  M2.moveTo(T2);
+  M3.moveTo(T3);
   M1.run();
   M2.run();
   M3.run();
