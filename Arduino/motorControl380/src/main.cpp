@@ -21,11 +21,13 @@ const int SCL_Pin = 21;
 //Motor Constants
 ///////////////////
 
-const int stepsPerRev = 3200;
-const int homingSteps = 200;
+const int stepsPerRev = 1600;
+const int homingSteps = 100;
 int T1 = 0; //M1 target
 int T2 = 0; //M2 target
 int T3 = 0; //M3 target
+const int MAX_MOTOR_LIM = 300;
+const int MIN_MOTOR_LIM = -300;
 
 AccelStepper M1(AccelStepper::DRIVER, step1Pin, dir1Pin); //create instance of stepper
 AccelStepper M2(AccelStepper::DRIVER, step2Pin, dir2Pin); //create instance of stepper
@@ -63,17 +65,38 @@ int8_t convertToSignedByte(uint8_t unsignedByte) {
 
 //get position from pot reading
 float getPosition(int val){
-  return -stepsPerRev/16.0 + ((float)(val) * ((stepsPerRev/8.0) / (1023.0)));
+  return val;
 }
+
+int startFlag = 0;
 
 void receiveEvent() {
   int M1_byte = convertToSignedByte(Wire.read());
   int M2_byte = convertToSignedByte(Wire.read());
   int M3_byte = convertToSignedByte(Wire.read());
-
-  T1 = getPosition(M1_byte);
-  T2 = getPosition(M2_byte);
-  T3 = getPosition(M3_byte);
+  if(startFlag){
+    T1 = getPosition(M1_byte);
+    if(T1>MAX_MOTOR_LIM){
+      T1=MAX_MOTOR_LIM;
+    } else if(T1<MIN_MOTOR_LIM){
+      T1 = MIN_MOTOR_LIM;
+    }
+    T2 = getPosition(M2_byte);
+    if(T2>MAX_MOTOR_LIM){
+      T2=MAX_MOTOR_LIM;
+    } else if(T2<MIN_MOTOR_LIM){
+      T2 = MIN_MOTOR_LIM;
+    }
+    T3 = getPosition(M3_byte);
+    if(T3>MAX_MOTOR_LIM){
+      T3=MAX_MOTOR_LIM;
+    } else if(T3<MIN_MOTOR_LIM){
+      T3 = MIN_MOTOR_LIM;
+    }
+    M1.moveTo(T1);
+    M2.moveTo(T2);
+    M3.moveTo(T3);
+  }
 }
 
 
@@ -103,9 +126,9 @@ void setup() {
 
   digitalWrite(enPin,HIGH);
 
-  M1.setMaxSpeed(5000);
-  M2.setMaxSpeed(5000);
-  M3.setMaxSpeed(5000);
+  M1.setMaxSpeed(3000);
+  M2.setMaxSpeed(3000);
+  M3.setMaxSpeed(3000);
   M1.setCurrentPosition(0); //zero current stepper position
   M2.setCurrentPosition(0);
   M3.setCurrentPosition(0);
@@ -125,9 +148,9 @@ void setup() {
   M1.enableOutputs(); //enable outputs for motor
   M2.enableOutputs();
   M3.enableOutputs();
-  M1.setAcceleration(10000);
-  M2.setAcceleration(10000);
-  M3.setAcceleration(10000);
+  M1.setAcceleration(5000);
+  M2.setAcceleration(5000);
+  M3.setAcceleration(5000);
 
   //All motors move out of the way
   M1.moveTo(homingSteps);
@@ -139,6 +162,7 @@ void setup() {
     M2.run();
     M3.run();
   }
+  delay(15);
 
   Serial.println("Motors On and home!");
   M1.setCurrentPosition(0);
@@ -147,14 +171,16 @@ void setup() {
 
   //Wait until program start
   delay(5000);
-  while(digitalRead(startButtonPin) == HIGH){}
+  while(digitalRead(startButtonPin) == HIGH){
+    M1.setCurrentPosition(0);
+    M2.setCurrentPosition(0);
+    M3.setCurrentPosition(0);
+  }
+  startFlag = 1;
 }
 
 //Program
 void loop() {
-  M1.moveTo(T1);
-  M2.moveTo(T2);
-  M3.moveTo(T3);
   M1.run();
   M2.run();
   M3.run();
