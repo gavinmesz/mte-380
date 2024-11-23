@@ -21,13 +21,13 @@ const int SCL_Pin = 21;
 //Motor Constants
 ///////////////////
 
-const int stepsPerRev = 1600;
-const int homingSteps = 100;
+const int stepsPerRev = 3200;
+const int homingSteps = 200;
 int T1 = 0; //M1 target
 int T2 = 0; //M2 target
 int T3 = 0; //M3 target
-const int MAX_MOTOR_LIM = 300;
-const int MIN_MOTOR_LIM = -300;
+const int MAX_MOTOR_LIM = 400;
+const int MIN_MOTOR_LIM = -400;
 
 AccelStepper M1(AccelStepper::DRIVER, step1Pin, dir1Pin); //create instance of stepper
 AccelStepper M2(AccelStepper::DRIVER, step2Pin, dir2Pin); //create instance of stepper
@@ -65,7 +65,7 @@ int8_t convertToSignedByte(uint8_t unsignedByte) {
 
 //get position from pot reading
 float getPosition(int val){
-  return val;
+  return (val/100.0)*(float)MAX_MOTOR_LIM;
 }
 
 int startFlag = 0;
@@ -170,7 +170,7 @@ void setup() {
   M3.setCurrentPosition(0);
 
   //Wait until program start
-  delay(5000);
+  delay(3000);
   while(digitalRead(startButtonPin) == HIGH){
     M1.setCurrentPosition(0);
     M2.setCurrentPosition(0);
@@ -181,6 +181,7 @@ void setup() {
 
 //Program
 void loop() {
+  //All motors move out of the way
   M1.run();
   M2.run();
   M3.run();
