@@ -11,13 +11,23 @@ cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)  # Adjust width as needed
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480) # Adjust height as needed
 
-kpx = 1
-kix = 0
-kdx = 0
+kp = 0.15
+ki = 0.001
+kd = -1
+ 
+#random comment
 
-kpy = 1
-kiy = 0
-kdy = 0
+totalErrorM1 = 0
+totalErrorM2 = 0
+totalErrorM3 = 0
+
+motor1 = 0
+motor2 = 0
+motor3 = 0
+            
+lastM1Dist = 0
+lastM2Dist = 0
+lastM3Dist = 0
 
 totalErrorX = 0
 totalErrorY = 0
@@ -25,7 +35,7 @@ totalErrorY = 0
 lastX = 0
 lastY = 0
 
-motor1 = 0
+motor1 = 0.5
 motor2 = 0
 motor3 = 0
 from smbus2 import SMBus
@@ -55,6 +65,77 @@ def send_motor_data(M1_Byte, M2_Byte, M3_Byte):
 def distance(coords0, coords1):
     return math.sqrt((coords0[0] - coords1[0])**2 + (coords0[1] - coords1[1])**2)
 
+
+def getPerp(linePoint1, linePoint2):
+    x1,y1 = linePoint1
+    x2,y2 = linePoint2
+    x3,y3 = linePoint2
+    
+    if(x2 == x1):
+        return (0,0)
+    
+    originalSlope = (y2-y1)/(x2-x1)
+    perp = -1/originalSlope
+    
+    b = y3 - perp*x3
+    
+    return(perp, b)
+
+def pointToLineDist(point, slope, intercept,motorType):
+    x1,y1 = point
+    A = slope
+    B = -1
+    C = intercept
+    
+    yline = slope*x1 + intercept
+    diff = y1 - yline
+    
+    numerator = abs(A*x1 + B*y1 + C)
+    denom = math.sqrt((A)**2 + (B)**2)
+
+    if(denom == 0):
+        return 0
+    if(motorType == "m1"):
+        if(y1 > yline):
+            return -numerator/denom
+        else:
+            return numerator/denom   
+    if(diff > 0):
+        return numerator/denom
+    else:
+        return -numerator/denom
+
+
+def getMotorDist(linePoint1, linePoint2, point,motorType):
+    slope, intercept = getPerp(linePoint1,linePoint2)
+    return pointToLineDist(point, slope, intercept,motorType)
+    
+'''
+def distFromLine(linePoint1, linePoint2, point):
+    
+    x1,y1 = linePoint1
+    x2,y2 = linePoint2
+    x3,y3 = point
+    
+    
+    numerator = ((y2-y1)*x3 - (x2-x1) *y3 + (x2*y1) - (y2*x1))
+    denom = math.sqrt((y2-y1)**2 + (x2-x1)**2)
+    
+    
+    cross = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
+    
+    input(cross)
+    
+    if(denom == 0):
+        return 0
+    if(cross > 0):
+        return numerator/denom
+    else:
+        return -numerator/denom
+'''
+   
+    
+
 def findClosest(m1Loc, m2Loc, m3Loc, ballLoc):
     closestName = "M3"
     closestDist = distance(ballLoc, m3Loc)
@@ -75,29 +156,43 @@ def getSign(num):
         return (0,0,255)
     return (0,255,0)
 
+def drawInterceptLine(frame,m1Loc,midX,midY):
+    m, i = getPerp(m1Loc,(int(midX),int(midY)))
+    x = midX
+    y = midY
+    
+    
+    deltaX = 50
+    
+    x1 = int(x - deltaX)
+    y1 = int(y - m *deltaX)
+    
+    x2 = int(x + deltaX)
+    y2 = int(y + m*deltaX)
+    
+    cv2.line(frame,(x1,y1),(x2,y2),(0,255,0),2)
+    return frame
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-
+    
+    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    
     # Convert the frame from BGR to HSV color space to easily identify a colour
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
 
-    # Apply Gaussian blur
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-    # Edge detection
-    edges = cv2.Canny(blurred, threshold1=50, threshold2=150, apertureSize=3)
-
-    plat_color_lower = np.array([0, 0, 150]) # [lower Hue, lower Saturation, lower Value]
-    plat_color_upper = np.array([172, 111, 255]) # [upper Hue, upper Saturation, upper Value]
     
+    plat_color_lower = np.array([0, 0, 105]) # [lower Hue, lower Saturation, lower Value]
+    plat_color_upper = np.array([180, 50, 200]) # [upper Hue, upper Saturation, upper Value]
     
+    hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # Threshold the HSV image to get the colors defined above
     # Pixels in the range are set to white (255) and those that aren't are set to black (0), creating a binary mask 
-    mask = cv2.inRange(gray, plat_color_lower, plat_color_upper)
-    #cv2.imshow("white mask", mask)
+    mask = cv2.inRange(hsvFrame, plat_color_lower, plat_color_upper)
+    cv2.imshow("white mask", mask)
     
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
    
@@ -115,16 +210,16 @@ while True:
         
         approx = cv2.approxPolyDP(largest_contour, epsilon=5, closed = True)
         
-        m1Loc = (int(midX), int(midY) + 100)
-        m2Loc = (int(midX) + 50, int(midY) - 50)
-        m3Loc = (int(midX) - 100, int(midY) - 50)
+        m1Loc = (int(midX), int(midY) + 150)
+        m2Loc = (int(midX) + 100, int(midY) - 75)
+        m3Loc = (int(midX) - 100, int(midY) - 75)
 
         
        
         # *3 Define the range of yellow color in HSV [Hue, Saturation, Value]
         # SET THESE VALUES VIA THE METHOD EXPLAINED IN THE TUTORIAL
-        ball_color_lower = np.array([10, 100, 100]) # [lower Hue, lower Saturation, lower Value]
-        ball_color_upper = np.array([50, 255, 255]) # [upper Hue, upper Saturation, upper Value]
+        ball_color_lower = np.array([10, 150, 100]) # [lower Hue, lower Saturation, lower Value]
+        ball_color_upper = np.array([25, 255, 255]) # [upper Hue, upper Saturation, upper Value]
 
 
         # Threshold the HSV image to get the colors defined above
@@ -143,13 +238,21 @@ while True:
 
         # Threshold the HSV image to get the colors defined above
         # Pixels in the range are set to white (255) and those that aren't are set to black (0), creating a binary mask 
-        mask = cv2.inRange(gray, ball_color_lower, ball_color_upper)
-        
+        mask = cv2.inRange(hsvFrame, ball_color_lower, ball_color_upper)
+        cv2.imshow("orange mask", mask)
+
 
         # Find contours in the mask
         # RETR_TREE retrieves all hierarchical contours and organizes them
         # CHAIN_APPROX_SIMPLE compresses horizontal, vertical, and diagonal segments, leaving only their end points
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        
+        
+        
+   # cv2.line(frame,m1Loc,(int(midX),int(midY)),(255,0,0),2)
+  #  cv2.line(frame,m2Loc,(int(midX),int(midY)),(255,0,0),2)
+ #   cv2.line(frame,m3Loc,(int(midX),int(midY)),(255,0,0),2)
 
         # Find the index of the largest contour/
         if contours:
@@ -174,20 +277,35 @@ while True:
             lastX = x 
             lastY = y 
             
-            xVector = -(kpx*errorX + kix*totalErrorX + kdx*dx)
-            yVector = -(kpy*errorY + kiy*totalErrorY + kdy*dy)
             
-            print(f"({xVector}, {yVector})")
+            m1Dist = getMotorDist(m1Loc,(midX,midY),(int(x),int(y)),"m1")
+            m2Dist = getMotorDist(m2Loc,(midX,midY),(int(x),int(y)),"m2")
+            m3Dist = getMotorDist(m3Loc,(midX,midY),(int(x),int(y)),"m3")
+            drawInterceptLine(frame,m3Loc,midX,midY)
+            
+            xVector = -(errorX)
+            yVector = -(errorY)
+            
             cv2.arrowedLine(frame, (int(x), int(y)), (int(x + xVector), int(y + yVector)), (255, 0, 0), thickness=2, tipLength=0.3)
             cv2.arrowedLine(frame, (int(x), int(y)), (int(x + dx), int(y + dy)), (0, 25, 0), thickness=2, tipLength=0.3)
 
-
-    
+            totalErrorM1 += m1Dist
+            totalErrorM2 += m2Dist
+            totalErrorM3 += m3Dist 
             
             
-            closest = (findClosest(m1Loc,m2Loc, m3Loc, (int(x),int(y))))
             
+            motor1 = -(kp*m1Dist + ki*totalErrorM1 + kd*(lastM1Dist-m1Dist))
+            motor2 = -(kp*m2Dist + ki*totalErrorM2 + kd*(lastM2Dist-m2Dist))
+            motor3 = -(kp*m3Dist + ki*totalErrorM3 + kd*(lastM3Dist-m3Dist))
             
+            lastM1Dist = m1Dist
+            lastM2Dist = m2Dist
+            lastM3Dist = m3Dist
+            
+       #     closest = (findClosest(m1Loc,m2Loc, m3Loc, (int(x),int(y))))
+            
+    '''        
             if "M1" == closest:
                 motor1 = -yVector
                 motor2 = -xVector - motor1
@@ -201,23 +319,20 @@ while True:
                 else:
                     motor2 = -xVector
                     motor1 = -yVector - motor2
-                    motor3 = -motor1 - motor2
+                    motor3 = yVector - motor2
+ '''                   
         
-        cv2.putText(frame,str(motor1), m1Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor1), 2, cv2.LINE_AA)
-        cv2.putText(frame,str(motor2), m2Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor2), 2, cv2.LINE_AA)
-        cv2.putText(frame,str(motor3), m3Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor3), 2, cv2.LINE_AA)
         
-        print("M1:", motor1)
-        #send_signed_int(int(motor1))
+    cv2.putText(frame,"M1"+str(int(motor1)), m1Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor1), 2, cv2.LINE_AA)
+    cv2.putText(frame,"M2"+str(int(motor2)), m2Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor2), 2, cv2.LINE_AA)
+    cv2.putText(frame,"M3"+str(int(motor3)), m3Loc, cv2.FONT_HERSHEY_SIMPLEX, 1, getSign(motor3), 2, cv2.LINE_AA)
 
-        print("M2:", motor2)
-        print("M3:", motor3)
-        
-        send_motor_data(motor1,motor2,motor3)
-        
+    
+    send_motor_data(motor1,motor2,motor3)
+    
 
 
-        # Display the frame with overlaid contours
+    # Display the frame with overlaid contours
 
     cv2.imshow("Contours Overlay with Matches", frame)
 
@@ -227,4 +342,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-
