@@ -138,11 +138,9 @@ void setup() {
   ///////////////
   
   pinMode(startButtonPin, INPUT_PULLUP);
-
+  Serial.println("Move motors to where you want");
   //All Motors off, wait for home
-  while (digitalRead(startButtonPin) == HIGH){
-    Serial.println("Move motors to where you want");
-  }
+  while (digitalRead(startButtonPin) == HIGH){}
 
   digitalWrite(enPin,LOW);
   M1.enableOutputs(); //enable outputs for motor
@@ -177,6 +175,9 @@ void setup() {
     M3.setCurrentPosition(0);
   }
   startFlag = 1;
+  Serial.println("Started!");
+
+  delay(3000);
 }
 
 //Program
